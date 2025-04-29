@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+      - name: flask-app
+        image: alaasalmo/flaskauth:0.0.2  # This should match the Docker image name
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: notebook-storage
+          mountPath: /notebook
+        env:
+        - name: JUPYTERPORT
+          valueFrom:
+            configMapKeyRef:
+              name: jupyter-config
+              key: JUPYTERPORT
+        - name: SESSION
+          valueFrom:
+            configMapKeyRef:
+              name: jupyter-config
+              key: SESSION  
+        - name: MINIKUBE_IP
+          valueFrom:        
+            configMapKeyRef:        
+              name: jupyter-config 
+              key: MINIKUBE_IP
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB        
+        - name: POSTGRES_PORT
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PORT  
+      volumes:
+      - name: notebook-storage
+        persistentVolumeClaim:
+          claimName: jupyter-pvc

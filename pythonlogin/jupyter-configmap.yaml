@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jupyter-config
+data:
+  JUPYTER_TOKEN: "token"
+  JUPYTERPORT: "30088" 
+  SESSION: "5" 
+  MINIKUBE_IP: "172.21.228.179"

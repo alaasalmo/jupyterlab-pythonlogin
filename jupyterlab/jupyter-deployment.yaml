@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyterlab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyterlab
+  template:
+    metadata:
+      labels:
+        app: jupyterlab
+    spec:
+      containers:
+      - name: jupyterlab
+        image: alaasalmo/jupyterlab:1.0.10
+        ports:
+        - containerPort: 8888
+        volumeMounts:
+        - name: notebook-storage
+          mountPath: /notebook
+        env:
+        - name: JUPYTER_SESSION
+          valueFrom:
+            configMapKeyRef:
+              name: jupyter-config
+              key: SESSION                            
+      volumes:
+      - name: notebook-storage
+        persistentVolumeClaim:
+          claimName: jupyter-pvc
+
