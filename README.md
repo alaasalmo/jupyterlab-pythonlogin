@@ -20,6 +20,39 @@ The PostgreSQL pod also requires a Service and a Secret:
 •	The Service (of type ClusterIP) provides internal access within the cluster. It allows the Flask authentication service to connect to PostgreSQL.
 •	The Secret securely stores sensitive information, such as database credentials.
 
+``` 
+docker build -t postgresql:0.0.1 .
+```
+
+
+```
+docker images
+docker tag XXXX alaasalmo/postgresql:0.0.1
+docker push alaasalmo/postgresql:0.0.1
+```
+```
+kubectl create secret generic postgres-secret \
+  --from-literal=POSTGRES_USER=admin \
+  --from-literal=POSTGRES_PASSWORD=admin \
+  --from-literal=POSTGRES_DB=jupyterlabdb \
+  --from-literal=POSTGRES_PORT=5432
+```
+
+```
+kubectl get pods
+kubectl exec -it postgres-XXXXXXXXXX-XXXXX -- psql -U admin -d jupyterlabdb -c "CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50), password varchar(50));"
+kubectl exec -it postgres-XXXXXXXXXX-XXXXX -- psql -U admin -d jupyterlabdb -c "\dt;"
+kubectl exec -it postgres-XXXXXXXXXX-XXXXX -- psql -U admin -d jupyterlabdb -c "insert into users (username,password) values ('username','password');"
+kubectl exec -it postgres-XXXXXXXXXX-XXXXX -- psql -U admin -d jupyterlabdb -c "select * from users;"
+```
+```
+kubectl apply -f pvc.yaml
+kubectl apply -f postgresql-service.yaml
+kubectl apply -f postgresql-deployment.yaml
+```
+
+Files: <a href="postgresql/">postgresql</a>
+
  ### II. Jupyter Lab server
 
 We deploy the JupyterLab server in its own pod. This pod requires a ConfigMap and a Service:
@@ -38,6 +71,37 @@ Accessing JupyterLab requires a token. Without a valid token, JupyterLab denies 
 
 This token is later used by the authentication system to forward users to JupyterLab after successful login.
 
+```
+docker build -t jupyterlab:1.0.8 .
+```
+```
+docker images
+docker tag XXXXX alaasalmo/jupyterlab:1.0.8
+docker push
+```
+```
+kubectl apply -f pvc.yaml
+```
+```
+cat <<EOF > jupyter-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jupyter-config
+data:
+  JUPYTERPORT: "30088" 
+  SESSION: "15" 
+  MINIKUBE_IP: "$(minikube ip)"
+EOF
+```
+
+```
+kubectl apply -f jupyter-configmap.yaml
+kubectl apply -f jupyterlab-service.yaml
+kubectl apply -f jupyter-deployment.yaml
+```
+
+Files: <a href="jupyterlab/">jupyterlab</a>
 
  ### III. Flask authentication
 
@@ -54,3 +118,18 @@ The Flask application then reads this token to authenticate users and redirect t
 
 The session timeout value is retrieved from the jupyter-config ConfigMap, using the SESSION variable, which specifies the session duration in minutes.
 
+```
+docker build -t flaskauth:0.0.2 .
+```
+```
+docker images
+docker tag XXXXX alaasalmo/flaskauth:0.0.2
+docker push alaasalmo/flaskauth:0.0.2
+```
+
+```
+kubect lapply -f jupyter-configmap.yaml
+kubectl apply -f flask-deployment.yaml
+kubectl apply -f flask-service.yaml
+```
+Files: <a href="pythonlogin/">pythonlogin</a>
